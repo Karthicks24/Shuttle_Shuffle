@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:shuttle_shuffle/features/player/domain/entities/player.dart';
 import '../../domain/entities/team.dart';
 
 abstract class TeamState extends Equatable {
@@ -14,11 +15,12 @@ class TeamLoading extends TeamState {}
 
 class TeamGenerated extends TeamState {
   final List<Team> teams;
+  final List<Player> players;
 
-  const TeamGenerated(this.teams);
+  const TeamGenerated(this.teams, this.players);
 
   @override
-  List<Object> get props => [teams];
+  List<Object> get props => [teams, players];
 }
 
 class TeamError extends TeamState {

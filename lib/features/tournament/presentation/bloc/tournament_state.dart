@@ -25,9 +25,11 @@ class TournamentActive extends TournamentState {
 
 class TournamentFinished extends TournamentState {
   final Team winner;
+  final Tournament tournament;
+  final Map<String, int> standings;
 
-  const TournamentFinished(this.winner);
+  const TournamentFinished(this.winner, this.tournament, this.standings);
 
   @override
-  List<Object> get props => [winner];
+  List<Object> get props => [winner, tournament, standings];
 }

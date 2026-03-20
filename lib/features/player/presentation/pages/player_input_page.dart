@@ -41,7 +41,9 @@ class _PlayerInputViewState extends State<PlayerInputView> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        FocusScope.of(context).unfocus();
+        // FocusScope.of(context).unfocus();
+        // This is the "Nuclear Option" — it hits the global focus manager
+        FocusManager.instance.primaryFocus?.unfocus();
       },
       behavior: HitTestBehavior.translucent,
       child: Scaffold(
@@ -167,6 +169,9 @@ class _PlayerInputViewState extends State<PlayerInputView> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
+                      // This is the "Nuclear Option" — it hits the global focus manager
+                      FocusManager.instance.primaryFocus?.unfocus();
+
                       final state = context.read<PlayerBloc>().state;
                       if (state is PlayerLoaded && state.players.length >= 2) {
                         Navigator.of(context).push(

@@ -28,14 +28,32 @@ class TournamentPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => sl<TournamentBloc>()..add(StartTournament(teams, type, maxPoints)),
-      child: const TournamentView(),
+      create: (_) =>
+          sl<TournamentBloc>()..add(StartTournament(teams, type, maxPoints)),
+      child: TournamentView(),
     );
   }
 }
 
-class TournamentView extends StatelessWidget {
+class TournamentView extends StatefulWidget {
   const TournamentView({super.key});
+
+  @override
+  State<TournamentView> createState() => _TournamentViewState();
+}
+
+class _TournamentViewState extends State<TournamentView> {
+  // To expand / collapse
+  final ValueNotifier<bool> _isExpanded = ValueNotifier<bool>(false);
+
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _isExpanded.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +64,7 @@ class TournamentView extends StatelessWidget {
 
         final shouldExit = await showDialog<bool>(
           context: context,
-          builder: (context) => AlertDialog(
+          builder: (diaogContext) => AlertDialog(
             backgroundColor: AppColors.primaryBackground,
             title: const Text(
               'Exit Tournament?',
@@ -58,14 +76,14 @@ class TournamentView extends StatelessWidget {
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context, false),
+                onPressed: () => Navigator.pop(diaogContext, false),
                 child: const Text(
                   'Cancel',
                   style: TextStyle(color: AppColors.text),
                 ),
               ),
               TextButton(
-                onPressed: () => Navigator.pop(context, true),
+                onPressed: () => Navigator.pop(diaogContext, true),
                 child: const Text(
                   'Exit',
                   style: TextStyle(color: Colors.redAccent),
@@ -77,10 +95,7 @@ class TournamentView extends StatelessWidget {
 
         if (shouldExit == true) {
           if (context.mounted) {
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (_) => const PlayerInputPage()),
-              (route) => false,
-            );
+            Navigator.pop(context);
           }
         }
       },
@@ -96,7 +111,7 @@ class TournamentView extends StatelessWidget {
               onPressed: () {
                 showDialog(
                   context: context,
-                  builder: (context) => AlertDialog(
+                  builder: (dialogContext) => AlertDialog(
                     backgroundColor: AppColors.primaryBackground,
                     title: const Text(
                       'Exit Tournament?',
@@ -108,7 +123,7 @@ class TournamentView extends StatelessWidget {
                     ),
                     actions: [
                       TextButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () => Navigator.pop(dialogContext),
                         child: const Text(
                           'Cancel',
                           style: TextStyle(color: AppColors.text),
@@ -116,12 +131,8 @@ class TournamentView extends StatelessWidget {
                       ),
                       TextButton(
                         onPressed: () {
-                          Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(
-                              builder: (_) => const PlayerInputPage(),
-                            ),
-                            (route) => false,
-                          );
+                          Navigator.pop(dialogContext);
+                          Navigator.pop(context);
                         },
                         child: const Text(
                           'Exit',
@@ -134,6 +145,17 @@ class TournamentView extends StatelessWidget {
               },
             ),
           ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            _scrollController.animateTo(
+              0,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+            );
+          },
+          tooltip: "Go back to top",
+          child: const Icon(Icons.keyboard_arrow_up_rounded),
         ),
         body: BlocConsumer<TournamentBloc, TournamentState>(
           listener: (context, state) {
@@ -148,132 +170,184 @@ class TournamentView extends StatelessWidget {
           builder: (context, state) {
             if (state is TournamentLoading) {
               return const Center(child: CircularProgressIndicator());
-            } else if (state is TournamentActive) {
-              return Column(
-                children: [
-                  // Standings Table
-                  Container(
-                    margin: const EdgeInsets.all(16),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white12),
-                    ),
-                    child: Column(
-                      children: [
-                        const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.leaderboard,
-                              color: AppColors.accent,
-                              size: 20,
-                            ),
-                            SizedBox(width: 8),
-                            Text(
-                              'Standings',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.accent,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Table(
-                          columnWidths: const {
-                            0: FlexColumnWidth(3),
-                            1: FlexColumnWidth(1),
-                          },
-                          children: [
-                            TableRow(
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.05),
-                              ),
-                              children: const [
-                                Padding(
-                                  padding: EdgeInsets.all(8),
-                                  child: Text(
-                                    'Team',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: EdgeInsets.all(8),
-                                  child: Text(
-                                    'Pts',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            ...state.standings.entries.map((entry) {
-                              final teamName = state.tournament.teams
-                                  .firstWhere((t) => t.id == entry.key)
-                                  .players
-                                  .map((p) => p.name)
-                                  .join(' & ');
-                              return TableRow(
+            }
+            if (state is TournamentActive || state is TournamentFinished) {
+              // Extract data safely using Type casting
+              final tournament = (state is TournamentActive)
+                  ? state.tournament
+                  : (state as TournamentFinished).tournament;
+
+              final standings = (state is TournamentActive)
+                  ? state.standings
+                  : (state as TournamentFinished).standings;
+
+              // Sorted by high points on top in descending order to show top players first
+              final sortedEntries = standings.entries.toList()
+                ..sort((a, b) => b.value.compareTo(a.value));
+
+              return SingleChildScrollView(
+                controller: _scrollController,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Standings Table
+                    Container(
+                      margin: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: ValueListenableBuilder<bool>(
+                        valueListenable: _isExpanded,
+                        builder: (context, expanded, _) {
+                          final displayEntries = expanded
+                              ? sortedEntries
+                              : sortedEntries.take(4).toList();
+                          return Column(
+                            children: [
+                              const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Padding(
-                                    padding: const EdgeInsets.all(8),
-                                    child: Text(teamName),
+                                  Icon(
+                                    Icons.leaderboard,
+                                    color: AppColors.accent,
+                                    size: 20,
                                   ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(8),
-                                    child: Text(
-                                      entry.value.toString(),
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.accent,
-                                      ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Standings',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.accent,
                                     ),
                                   ),
                                 ],
-                              );
-                            }).toList(),
-                          ],
-                        ),
-                      ],
+                              ),
+                              const SizedBox(height: 12),
+                              Table(
+                                columnWidths: const {
+                                  0: FlexColumnWidth(3),
+                                  1: FlexColumnWidth(1),
+                                },
+                                children: [
+                                  TableRow(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.05),
+                                    ),
+                                    children: const [
+                                      Padding(
+                                        padding: EdgeInsets.all(8),
+                                        child: Text(
+                                          'Team',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: EdgeInsets.all(8),
+                                        child: Text(
+                                          'Pts',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  // ...state.standings.entries
+                                  ...displayEntries.map((entry) {
+                                    final team = tournament.teams.firstWhere(
+                                      (t) => t.id == entry.key,
+                                    );
+                                    final teamName = team.players
+                                        .map((p) => p.name)
+                                        .join(' & ');
+
+                                    return TableRow(
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.all(8),
+                                          child: Text(teamName),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.all(8),
+                                          child: Text(
+                                            entry.value.toString(),
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.accent,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }).toList(),
+                                ],
+                              ),
+                              // 4. The "Show More" Button
+                              if (sortedEntries.length > 4)
+                                TextButton(
+                                  onPressed: () {
+                                    // Toggle the local state here
+                                    _isExpanded.value = !_isExpanded.value;
+                                  },
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        expanded
+                                            ? 'Show Less'
+                                            : 'Show All Teams',
+                                      ),
+                                      Icon(
+                                        expanded
+                                            ? Icons.keyboard_arrow_up
+                                            : Icons.keyboard_arrow_down,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                  const Divider(indent: 16, endIndent: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.event_note,
-                          color: Colors.white70,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Fixtures (${state.tournament.matches.where((m) => m.isFinished).length}/${state.tournament.matches.length})',
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // Fixture List
-                  Expanded(
-                    child: ListView.builder(
+                    const Divider(indent: 16, endIndent: 16),
+                    Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: state.tournament.matches.length,
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.event_note,
+                            color: Colors.white70,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Fixtures (${tournament.matches.where((m) => m.isFinished).length}/${tournament.matches.length})',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Fixture List
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: tournament.matches.length,
                       itemBuilder: (context, index) {
-                        final match = state.tournament.matches[index];
+                        final match = tournament.matches[index];
                         return Card(
                           color: match.isFinished
                               ? Colors.green.withOpacity(0.08)
@@ -395,7 +469,7 @@ class TournamentView extends StatelessWidget {
                                           teamA: match.teamA,
                                           teamB: match.teamB,
                                           matchId: match.id,
-                                          maxPoints: state.tournament.maxPoints,
+                                          maxPoints: tournament.maxPoints,
                                         ),
                                       ),
                                     );
@@ -413,32 +487,32 @@ class TournamentView extends StatelessWidget {
                         );
                       },
                     ),
-                  ),
-                  if (state.tournament.type == TournamentType.knockout &&
-                      state.tournament.matches.every((m) => m.isFinished))
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: ElevatedButton(
-                        onPressed: () {
-                          context.read<TournamentBloc>().add(
-                            GenerateNextRound(),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.accent,
-                          foregroundColor: AppColors.primaryBackground,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                    if (tournament.type == TournamentType.knockout &&
+                        tournament.matches.every((m) => m.isFinished))
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: ElevatedButton(
+                          onPressed: () {
+                            context.read<TournamentBloc>().add(
+                              GenerateNextRound(),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accent,
+                            foregroundColor: AppColors.primaryBackground,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Generate Next Knockout Round',
+                            style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ),
-                        child: const Text(
-                          'Generate Next Knockout Round',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               );
             }
             return const SizedBox.shrink();

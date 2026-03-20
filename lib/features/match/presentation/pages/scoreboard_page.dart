@@ -46,14 +46,15 @@ class ScoreboardView extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            final state = context.read<MatchBloc>().state;
-            if (state is MatchInProgress) {
-              Navigator.of(context).pop(state.match);
-            } else if (state is MatchFinished) {
-              Navigator.of(context).pop(state.match);
-            } else {
-              Navigator.of(context).pop();
-            }
+            // final state = context.read<MatchBloc>().state;
+            // if (state is MatchInProgress) {
+            //   Navigator.of(context).pop(state.match);
+            // } else if (state is MatchFinished) {
+            //   Navigator.of(context).pop(state.match);
+            // } else {
+            //   Navigator.of(context).pop();
+            // }
+            Navigator.of(context).pop(null);
           },
         ),
         actions: [
@@ -78,14 +79,14 @@ class ScoreboardView extends StatelessWidget {
                 ? 'Team Matches Finished! Winner: Team ${winner.players.map((e) => e.name).join(' & ')}'
                 : 'Match Finished!';
 
-            Fluttertoast.showToast(
-              msg: message,
-              toastLength: Toast.LENGTH_LONG,
-              gravity: ToastGravity.CENTER,
-              backgroundColor: AppColors.accent,
-              textColor: AppColors.primaryBackground,
-              fontSize: 18.0,
-            );
+            // Fluttertoast.showToast(
+            //   msg: message,
+            //   toastLength: Toast.LENGTH_LONG,
+            //   gravity: ToastGravity.CENTER,
+            //   backgroundColor: AppColors.accent,
+            //   textColor: AppColors.primaryBackground,
+            //   fontSize: 18.0,
+            // );
           }
         },
         builder: (context, state) {
@@ -96,15 +97,8 @@ class ScoreboardView extends StatelessWidget {
                 return;
               }
 
-              Match? match;
-              if (state is MatchInProgress) {
-                match = state.match;
-              } else if (state is MatchFinished) {
-                match = state.match;
-              }
-
               if (context.mounted) {
-                Navigator.of(context).pop(match);
+                Navigator.of(context).pop(null);
               }
             },
             child: _buildBody(context, state),

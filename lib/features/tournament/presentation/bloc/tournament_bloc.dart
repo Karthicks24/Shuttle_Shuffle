@@ -21,6 +21,8 @@ class TournamentBloc extends Bloc<TournamentEvent, TournamentState> {
     Emitter<TournamentState> emit,
   ) {
     emit(TournamentLoading());
+    if (state is TournamentActive || state is TournamentFinished) return;
+    
     final matches = generateFixtures.generateRoundRobin(
       event.teams,
       event.maxPoints,
@@ -57,7 +59,7 @@ class TournamentBloc extends Bloc<TournamentEvent, TournamentState> {
           // Find winner
           final ranked = _getRankedTeams(updatedTournament, standings);
           if (ranked.isNotEmpty) {
-            emit(TournamentFinished(ranked.first));
+            emit(TournamentFinished(ranked.first, updatedTournament, standings));
             return; // Exit early as we transitioned state
           }
         }

@@ -93,7 +93,7 @@ class TeamDisplayView extends StatelessWidget {
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      'Needs a substitute/ghost',
+                                      'Needs a substitute',
                                       style: TextStyle(
                                         color: Colors.orangeAccent.withOpacity(
                                           0.8,
@@ -119,18 +119,9 @@ class TeamDisplayView extends StatelessWidget {
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () {
-                            // Re-trigger generation with the same players
-                            // We need to access the players from the event history or pass them down.
-                            // For simplicity accessing via closure if possible or we can store players in state.
-                            // But here we rely on the parent or we can restart the bloc event.
-                            // Better approach: Have a 'ShuffleAgain' event or just pass players again.
-                            // Since we are inside BlocProvider, we can't easily access the initial players without storing them.
-                            // Let's assume we navigate back or use a stored list if we had one.
-                            // Actually, simpler: Just pop and push again or simpler:
-                            // We can't easily re-shuffle here without the player list in the state.
-                            // Let's update state to hold players too? Or just pass it in event.
-                            // For now, let's just use the Navigator to pop.
-                            Navigator.of(context).pop();
+                            context.read<TeamBloc>().add(
+                              GenerateTeams(state.players),
+                            );
                           },
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: AppColors.accent),
@@ -139,7 +130,7 @@ class TeamDisplayView extends StatelessWidget {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: const Text('Back / Reshuffle'),
+                          child: const Text('Reshuffle'),
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -186,11 +177,11 @@ class TeamDisplayView extends StatelessWidget {
   }
 
   void _showConfigDialog(BuildContext context, List<Team> teams) {
-    int selectedPoints = 21;
+    int selectedPoints = 15;
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
+      builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
             backgroundColor: AppColors.primaryBackground,
@@ -237,11 +228,15 @@ class TeamDisplayView extends StatelessWidget {
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.loop, color: AppColors.accent),
                   title: const Text(
-                    'Regular (Round Robin)',
+                    'Regular Mode',
                     style: TextStyle(color: Colors.white),
                   ),
+                  subtitle: const Text(
+                    'Each team plays each other once',
+                    style: TextStyle(color: Colors.white70),
+                  ),
                   onTap: () {
-                    Navigator.pop(context);
+                    Navigator.pop(dialogContext);
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -256,28 +251,76 @@ class TeamDisplayView extends StatelessWidget {
                 ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(
+                  // 1. Desaturate the icon to look "locked"
+                  leading: Icon(
                     Icons.account_tree,
-                    color: AppColors.accent,
+                    color: const Color.fromRGBO(0, 191, 255, 0.4),
                   ),
-                  title: const Text(
-                    'Tournament (Knockout)',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => TournamentPage(
-                          teams: teams,
-                          type: TournamentType.knockout,
-                          maxPoints: selectedPoints,
-                        ),
+                  // 2. Add a "Coming Soon" badge to the trailing side
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color.fromRGBO(0, 191, 255, 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: const Color.fromRGBO(0, 191, 255, 0.4),
                       ),
-                    );
-                  },
+                    ),
+                    child: const Text(
+                      'SOON',
+                      style: TextStyle(
+                        color: AppColors.accent,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Knockout Mode (Locked)',
+                    style: TextStyle(
+                      color: const Color.fromRGBO(255, 255, 255, 0.3),
+                    ),
+                  ),
+                  title: Text(
+                    'Tournament Mode',
+                    style: TextStyle(
+                      color: const Color.fromRGBO(255, 255, 255, 0.5),
+                    ),
+                  ),
+                  onTap: () {},
                 ),
+
+                // ListTile(
+                //   contentPadding: EdgeInsets.zero,
+                //   leading: const Icon(
+                //     Icons.account_tree,
+                //     color: AppColors.accent,
+                //   ),
+                //   subtitle: const Text(
+                //     'Knockout',
+                //     style: TextStyle(color: Colors.white70),
+                //   ),
+                //   title: const Text(
+                //     'Tournament Mode',
+                //     style: TextStyle(color: Colors.white),
+                //   ),
+                //   onTap: () {
+                //     Navigator.pop(dialogContext);
+                //     Navigator.push(
+                //       context,
+                //       MaterialPageRoute(
+                //         builder: (_) => TournamentPage(
+                //           teams: teams,
+                //           type: TournamentType.knockout,
+                //           maxPoints: selectedPoints,
+                //         ),
+                //       ),
+                //     );
+                //   },
+                // ),
               ],
             ),
           );

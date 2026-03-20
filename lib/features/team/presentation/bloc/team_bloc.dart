@@ -18,7 +18,7 @@ class TeamBloc extends Bloc<TeamEvent, TeamState> {
     final result = await shuffleTeams(event.players);
     result.fold(
       (failure) => emit(const TeamError('Failed to generate teams')),
-      (teams) => emit(TeamGenerated(teams)),
+      (teams) => emit(TeamGenerated(teams, event.players)),
     );
   }
 }

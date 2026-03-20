@@ -71,12 +71,8 @@ class TournamentWinnerPage extends StatelessWidget {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
-                          // Go back to Generated Teams
-                          Navigator.of(context).pop(); // Back to TournamentPage
-                          Navigator.of(
-                            context,
-                          ).pop(); // Back to TeamDisplayPage
-                          Navigator.of(context).pop();
+                          Navigator.pop(context);
+                          Navigator.pop(context);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.accent,
@@ -87,7 +83,7 @@ class TournamentWinnerPage extends StatelessWidget {
                           ),
                         ),
                         child: const Text(
-                          'BACK TO TEAMS',
+                          'Next',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -95,15 +91,11 @@ class TournamentWinnerPage extends StatelessWidget {
                     const SizedBox(height: 16),
                     TextButton(
                       onPressed: () {
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(
-                            builder: (_) => const PlayerInputPage(),
-                          ),
-                          (route) => false,
-                        );
+                        // Go back to Generated Teams
+                        Navigator.of(context).pop(); // Back to TournamentPage
                       },
                       child: const Text(
-                        'START NEW TOURNAMENT',
+                        'View Table',
                         style: TextStyle(color: Colors.white70),
                       ),
                     ),
